@@ -1,30 +1,22 @@
-You are executing preflight.
+你现在正在执行 Phase 3。
 
-Goal:
-- Only fix environment blockers before automation can continue
-- Do not enter business feature development
+目标：
+- 只实现 auth 最小闭环
+- 不进入 onboarding / conversations / chat
 
-Must complete:
-- Check dependency declarations in:
-  - root package.json
-  - apps/api/package.json
-  - apps/web/package.json
-  - packages/shared/package.json
-- Fix the current TypeScript module resolution failure
-- Make these commands pass:
-  - corepack pnpm install
-  - corepack pnpm typecheck:api
+必须完成：
+- POST /auth/send-code
+- POST /auth/verify-code
+- POST /auth/logout
+- GET /me
 
-Forbidden:
-- Do not enter auth / onboarding / conversations / chat implementation
-- Do not revert existing migration work
-- Do not modify shared contracts unless strictly required for compilation
+强约束：
+- 使用 server-side session + HttpOnly cookie
+- 不使用前端持久化 JWT
+- 明文验证码不落库
+- auth_sessions 存 token hash
+- 统一错误结构
 
-Output requirements:
-1. First output the file list to create or modify
-2. Then implement
-3. After completion report:
-   - which blockers were solved
-   - which files were changed
-   - which commands now pass
-   - what is still required before phase-3 can start
+禁止：
+- 不要进入 onboarding / conversations / chat
+- 不要擅自修改 shared contracts，除非编译必须
