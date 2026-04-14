@@ -1,0 +1,23 @@
+{
+  "name": "ai-voice-assistant",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.11.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "check:workspace": "node scripts/check-workspace.mjs",
+    "dev:api": "corepack pnpm --filter @ai-voice-assistant/api start:dev",
+    "lint": "eslint .",
+    "format": "prettier --check .",
+    "typecheck:api": "corepack pnpm --filter @ai-voice-assistant/api typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "eslint": "^9.25.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3"
+  }
+}

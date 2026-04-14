@@ -1,0 +1,10 @@
+{
+  "name": "@ai-voice-assistant/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node -e \"console.log('web scaffold ready')\""
+  }
+}
+
