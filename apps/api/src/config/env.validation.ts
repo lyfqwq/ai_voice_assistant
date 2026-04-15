@@ -24,6 +24,24 @@ class EnvironmentVariables {
 
   @IsString()
   @IsNotEmpty()
+  SMTP_HOST!: string;
+
+  @IsInt()
+  @Min(1)
+  SMTP_PORT!: number;
+
+  @IsString()
+  SMTP_USER!: string;
+
+  @IsString()
+  SMTP_PASS!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  SMTP_FROM!: string;
+
+  @IsString()
+  @IsNotEmpty()
   MODEL_BASE_URL!: string;
 
   @IsString()
@@ -50,4 +68,3 @@ export function validateEnv(config: Record<string, unknown>): EnvironmentVariabl
 
   return validatedConfig;
 }
-
