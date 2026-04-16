@@ -1,13 +1,14 @@
 # AI Voice Assistant
 
-一个面向学习陪练场景的 AI 聊天助手 MVP 仓库。
+面向学习陪练场景的 AI 聊天助手 MVP。
 
-当前仓库已经跑通的最小后端闭环包括：
+当前仓库已经跑通的最小闭环包括：
 - 邮箱验证码登录
 - `learning-profile` onboarding
-- 新建与查询 conversations
-- `POST /conversations/:id/messages` 的最小 SSE 聊天链路
+- conversation 创建与历史查询
+- `POST /conversations/:id/messages` 的 SSE 聊天链路
 - 首轮 assistant 回复后自动生成 conversation title
+- Vue 前端登录、onboarding、会话列表、消息历史与流式聊天界面
 
 ## 技术栈
 
@@ -25,86 +26,12 @@ apps/
 packages/
   shared/     共享 contracts 与类型
 scripts/      验证与自动化脚本
+docs/         联调、部署与交付文档
 ```
 
-## 当前可用命令
+## 当前状态
 
-在仓库根目录 `D:\Codex\ai_voice_assistant` 下执行：
-
-```powershell
-corepack pnpm install
-corepack pnpm typecheck:api
-corepack pnpm dev:api
-```
-
-后端 migration 命令：
-
-```powershell
-corepack pnpm --filter @ai-voice-assistant/api migration:show
-corepack pnpm --filter @ai-voice-assistant/api migration:run
-corepack pnpm --filter @ai-voice-assistant/api migration:revert
-```
-
-## 环境变量
-
-先复制：
-
-```powershell
-Copy-Item .env.example .env
-```
-
-最小必填项见 [`.env.example`](D:\Codex\ai_voice_assistant\.env.example)：
-- `DATABASE_URL`
-- `SESSION_SECRET`
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `SMTP_FROM`
-- `MODEL_BASE_URL`
-- `MODEL_API_KEY`
-- `MODEL_NAME`
-
-说明：
-- 本地联调可以使用 mock SMTP 和 mock model，不要求一开始就连真实外部服务。
-- 后端当前会显式读取仓库根目录 `.env`。
-
-## 快速验证
-
-基础静态验证：
-
-```powershell
-node scripts/check-workspace.mjs
-corepack pnpm install
-corepack pnpm typecheck:api
-```
-
-Phase 6 正式联调验证：
-
-```powershell
-.\scripts\validate-phase-6.ps1
-```
-
-这个验证脚本会串起：
-- workspace 检查
-- `pnpm install`
-- `typecheck:api`
-- 本地 runtime smoke
-
-## 本地联调
-
-更完整的本地联调说明见 [docs/local-runtime.md](D:\Codex\ai_voice_assistant\docs\local-runtime.md)。
-前端对接说明见 [docs/frontend-local.md](D:\Codex\ai_voice_assistant\docs\frontend-local.md)。
-真实 SMTP / 模型接入说明见 [docs/real-integrations.md](D:\Codex\ai_voice_assistant\docs\real-integrations.md)。
-
-如果你只想快速跑一遍：
-
-```powershell
-.\scripts\local\runtime-smoke.ps1 -Scenario en
-.\scripts\local\runtime-smoke.ps1 -Scenario zh
-```
-
-## 当前闭环覆盖范围
-
-已经覆盖：
+后端已经完成并验证：
 - `GET /api/health`
 - `POST /api/auth/send-code`
 - `POST /api/auth/verify-code`
@@ -117,19 +44,108 @@ Phase 6 正式联调验证：
 - `GET /api/conversations/:id/messages`
 - `POST /api/conversations/:id/messages`
 
-当前 SSE 事件范围固定为：
-- `ack`
-- `delta`
-- `completed`
-- `conversation.updated`
-- `profile.updated`
-- `error`
-- `done`
+前端已经完成并验证：
+- 登录页
+- 验证码输入与 resend 倒计时
+- `/me` 恢复登录态
+- onboarding 表单
+- conversation list
+- message history
+- SSE assistant 流式展示
+- 失败重试、基础 loading / empty / error 状态
 
-## 已知前提
+真实集成已经验证通过：
+- 真实 SMTP 发信
+- 真实模型调用
+- 真实验证码登录
+- 真实 conversation 创建
+- 真实 SSE chat 与标题自动生成
 
-- 运行时验证依赖本地 PostgreSQL。
-- `send-code` 需要可用 SMTP；本地 smoke 默认会启 mock SMTP。
-- chat 需要模型端点；本地 smoke 默认会启 mock model。
-- 目前文档以 Windows PowerShell 运行方式为主。
-- `apps/web` 现在已经具备 auth、onboarding、conversations 和最小 SSE chat 前端闭环，并补上了基础 loading / empty / retry polish；当前主要剩余的是更细的体验打磨，不是主链路缺失。
+详细结果见：
+- [docs/integration-report.md](docs/integration-report.md)
+
+## 常用命令
+
+在仓库根目录 `D:\Codex\ai_voice_assistant` 下执行：
+
+```powershell
+corepack pnpm install
+corepack pnpm typecheck:api
+corepack pnpm typecheck:web
+corepack pnpm dev:api
+corepack pnpm dev:web
+```
+
+数据库 migration：
+
+```powershell
+corepack pnpm --filter @ai-voice-assistant/api migration:show
+corepack pnpm --filter @ai-voice-assistant/api migration:run
+corepack pnpm --filter @ai-voice-assistant/api migration:revert
+```
+
+## 环境变量
+
+先复制模板：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+本地开发最少需要：
+- `DATABASE_URL`
+- `SESSION_SECRET`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_FROM`
+- `MODEL_BASE_URL`
+- `MODEL_API_KEY`
+- `MODEL_NAME`
+
+如果要做真实服务联调或部署准备，参考：
+- [docs/real-integrations.md](docs/real-integrations.md)
+- [docs/production-env.example](docs/production-env.example)
+
+## 验证入口
+
+基础验证：
+
+```powershell
+node scripts/check-workspace.mjs
+corepack pnpm install
+corepack pnpm typecheck:api
+corepack pnpm typecheck:web
+```
+
+后端正式运行时验证：
+
+```powershell
+.\scripts\validate-phase-6.ps1
+```
+
+本地 smoke：
+
+```powershell
+.\scripts\local\runtime-smoke.ps1 -Scenario en
+.\scripts\local\runtime-smoke.ps1 -Scenario zh
+.\scripts\validate-runtime-smoke.ps1
+```
+
+## 文档索引
+
+- 本地运行说明：[docs/local-runtime.md](docs/local-runtime.md)
+- 前端联调说明：[docs/frontend-local.md](docs/frontend-local.md)
+- 真实 SMTP / 模型接入：[docs/real-integrations.md](docs/real-integrations.md)
+- 真实集成结果报告：[docs/integration-report.md](docs/integration-report.md)
+- 部署前检查清单：[docs/deployment-checklist.md](docs/deployment-checklist.md)
+- 生产环境变量模板：[docs/production-env.example](docs/production-env.example)
+
+## 当前未覆盖范围
+
+当前仍不在 MVP 已验证范围内：
+- 文件上传
+- 知识库
+- 工具调用
+- 多端实时同步
+- 管理后台
+- 生产部署脚本与 CI/CD
