@@ -132,4 +132,4 @@ Phase 6 正式联调验证：
 - `send-code` 需要可用 SMTP；本地 smoke 默认会启 mock SMTP。
 - chat 需要模型端点；本地 smoke 默认会启 mock model。
 - 目前文档以 Windows PowerShell 运行方式为主。
-- `apps/web` 当前仍是 scaffold，前端联调文档描述的是“如何对接当前后端”，不是“前端已经完整实现”。
+- `apps/web` 现在已经具备 auth、onboarding、conversations 和最小 SSE chat 前端闭环，并补上了基础 loading / empty / retry polish；当前主要剩余的是更细的体验打磨，不是主链路缺失。

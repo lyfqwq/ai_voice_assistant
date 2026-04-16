@@ -1,45 +1,45 @@
 # 前端联调说明
 
-这份文档只说明前端如何对接当前已经跑通的后端闭环。
+这份文档描述当前 `apps/web` 已经具备的真实前端联调能力，以及现在最推荐的本地验证路径。
 
-先说明当前状态：
-- [apps/web/package.json](D:\Codex\ai_voice_assistant\apps\web\package.json) 还只是基础 scaffold
-- [apps/web/src/main.ts](D:\Codex\ai_voice_assistant\apps\web\src\main.ts) 目前没有真实页面逻辑
+## 当前状态
 
-所以这里的“前端联调”指的是：
-- 前端开发时如何连接本地后端
-- 当前后端接口如何组织
-- 登录态、Cookie、SSE 在浏览器侧要注意什么
+`apps/web` 目前已经具备：
+- Vue 3 + Vite + TypeScript 可运行工程
+- guest / authenticated 路由分支
+- 邮箱验证码登录页面
+- onboarding 页面
+- conversation list
+- message history
+- chat composer
+- SSE assistant 流式展示
+- 基础的 loading / empty / error 态
+- 失败消息的重试入口
 
-## 1. 本地联调目标
+当前主要剩余的是进一步的交互 polish，不是主链路缺失。
 
-当前后端已可用于前端联调的能力：
-- 邮箱验证码登录
-- 读取当前用户
-- onboarding 读写 `learning-profile`
-- 会话创建与列表查询
-- 消息历史查询
-- chat SSE 最小闭环
+## 1. 本地启动
 
-接口范围：
-- `POST /api/auth/send-code`
-- `POST /api/auth/verify-code`
-- `POST /api/auth/logout`
-- `GET /api/me`
-- `GET /api/learning-profile`
-- `PATCH /api/learning-profile`
-- `POST /api/conversations`
-- `GET /api/conversations`
-- `GET /api/conversations/:id/messages`
-- `POST /api/conversations/:id/messages`
+推荐开两个终端。
 
-## 2. 推荐本地启动方式
-
-先启动后端：
+终端 1：启动后端
 
 ```powershell
 cd "D:\Codex\ai_voice_assistant"
 corepack pnpm dev:api
+```
+
+终端 2：启动前端
+
+```powershell
+cd "D:\Codex\ai_voice_assistant"
+corepack pnpm dev:web
+```
+
+前端地址：
+
+```text
+http://127.0.0.1:5173
 ```
 
 后端健康检查：
@@ -48,87 +48,70 @@ corepack pnpm dev:api
 http://127.0.0.1:3000/api/health
 ```
 
-如果后面开始补 `apps/web` 的真实页面，建议本地前端开发服务器使用独立端口，例如 `5173`。
+## 2. 本地代理与 Cookie
 
-## 3. 浏览器侧的关键约束
+前端 dev server 已经配置了代理：
+- `/api` -> `http://127.0.0.1:3000`
 
-### 认证方式
+因此前端请求直接走 `/api/...` 即可。
 
-当前后端使用的是：
+当前认证方式仍然是：
 - server-side session
-- `HttpOnly` cookie
+- HttpOnly cookie
 
-前端这边要记住两点：
-- 不要自行保存 JWT
-- 所有需要登录态的请求都要带 `credentials`
+前端请求默认带：
+- `credentials: "include"`
 
-如果你用 `fetch`：
+这意味着：
+- 不需要前端保存 JWT
+- `/api/me` 仍然是前端恢复登录态的基准接口
 
-```ts
-fetch("http://127.0.0.1:3000/api/me", {
-  credentials: "include",
-});
-```
+## 3. 当前已接通的前端链路
 
-如果你用 `axios`，要开启 `withCredentials: true`。
+### Auth
 
-### 开发期跨域
+前端已接：
+- `POST /api/auth/send-code`
+- `POST /api/auth/verify-code`
+- `POST /api/auth/logout`
+- `GET /api/me`
 
-当前仓库还没有单独补前端 dev server 的代理配置文档，所以最稳妥的本地联调方案有两种：
-- 前端 dev server 配代理，把 `/api` 代理到 `http://127.0.0.1:3000`
-- 或者前端直接请求后端完整地址，并确保请求带 cookie
+当前页面行为：
+- guest 进入 `/auth`
+- 登录成功后自动进入 `/app`
+- logout 后回到 guest 状态
+- 验证码发送后会显示 resend 倒计时
 
-如果开始做真实前端，推荐优先走“开发代理”，这样 Cookie、SSE 和路径都更省心。
+### Onboarding
 
-## 4. 推荐前端对接顺序
+前端已接：
+- `GET /api/learning-profile`
+- `PATCH /api/learning-profile`
 
-### Step 1: 登录
+当前页面行为：
+- 没有 profile 时显示 onboarding 表单
+- 提交后创建 `learning_profiles`
+- 前端 session 同步切为 `onboardingCompleted = true`
 
-1. 调 `POST /api/auth/send-code`
-2. 输入验证码后调 `POST /api/auth/verify-code`
-3. 成功后立刻调 `GET /api/me`
+### Conversations
 
-页面侧建议：
-- `verify-code` 成功后，不要只依赖接口返回体，立即再请求一次 `/api/me`
-- 以 `/api/me` 为准决定是否进入 onboarding 或主会话区
+前端已接：
+- `POST /api/conversations`
+- `GET /api/conversations`
+- `GET /api/conversations/:id/messages`
 
-### Step 2: onboarding
+当前页面行为：
+- 可以创建新对话
+- 可以点击左侧列表切换会话
+- 可以加载消息历史
+- conversation list 有基础 loading 与 empty state
 
-1. 调 `GET /api/learning-profile`
-2. 如果 `profile` 为 `null`，进入 onboarding
-3. 提交时调 `PATCH /api/learning-profile`
+### Chat SSE
 
-当前后端约束：
-- `learning_profiles` 在 onboarding 完成后创建
-- 不是注册时预创建
-
-### Step 3: conversation list
-
-进入主界面后：
-- 调 `GET /api/conversations`
-- 点击“新对话”时调 `POST /api/conversations`
-- 打开某个会话后调 `GET /api/conversations/:id/messages`
-
-### Step 4: chat SSE
-
-发送消息时调：
+前端已接：
 - `POST /api/conversations/:id/messages`
 
-请求头：
-- `Content-Type: application/json`
-- `Accept: text/event-stream`
-
-请求体：
-
-```json
-{
-  "content": "帮我练习一个英语自我介绍开场"
-}
-```
-
-## 5. SSE 事件处理约定
-
-当前后端只支持这些事件：
+当前已处理的事件：
 - `ack`
 - `delta`
 - `completed`
@@ -137,75 +120,83 @@ fetch("http://127.0.0.1:3000/api/me", {
 - `error`
 - `done`
 
-推荐前端处理方式：
+当前页面行为：
+- 先插入本地 user message
+- 创建 assistant 占位消息
+- `delta` 逐步追加到 assistant 内容
+- `completed` 后替换为最终 assistant message
+- `conversation.updated` 后刷新当前会话标题和列表项
+- `profile.updated` 后刷新学习画像摘要
+- message list 会在切换会话和流式回复时自动滚动到底部
+- 发送失败后会保留一个“Retry last prompt”入口
 
-### `ack`
+## 4. 推荐手工联调顺序
 
-用于建立当前请求和消息占位的绑定关系。
+1. 打开 `/auth`
+2. 请求邮箱验证码
+3. 输入验证码并登录
+4. 进入 `/app`
+5. 如果还没有 profile，先完成 onboarding
+6. 创建一个新 conversation
+7. 发送一条消息
+8. 确认 assistant 是流式出现的
+9. 确认首轮标题会从 `新对话` 更新为真实标题
+10. 确认 profile 摘要里的 `recentTopics / progressNotes` 会刷新
+11. 人为制造一次失败后，确认可以点击重试
 
-前端可以在这里：
-- 创建一条 assistant 占位消息
-- 记录 `assistantMessageId`
-- 立刻把用户消息插入本地列表
+## 5. 当前最值得重点观察的点
 
-### `delta`
+### 登录恢复
 
-只用于流式展示，不要把它当成最终落库结果。
+刷新页面后，前端会重新调：
 
-前端可以：
-- 通过 `assistantMessageId` 追加展示文本
-- 自动滚动到底部
+```text
+GET /api/me
+```
 
-### `completed`
+如果 session 还有效，应直接恢复到 authenticated 分支。
 
-把占位中的 assistant 消息替换成最终完整消息。
+### 会话标题联动
 
-### `conversation.updated`
+首轮 chat 完成后，后端会通过：
 
-用于刷新：
-- `title`
-- `summary`
-- `messageCount`
-- `lastMessageAt`
+```text
+event: conversation.updated
+```
 
-首轮消息完成后，标题可能从 `新对话` 变成真正标题，前端要用这个事件刷新列表与当前 header。
+把新标题推回来。前端现在会同步更新：
+- 当前聊天 header
+- 左侧 conversation list
 
-### `profile.updated`
+### SSE 错误态
 
-这是可选事件。
+如果 `error` 事件到达：
+- 当前会显示错误提示
+- 不会把空 assistant 占位永久留在界面里
+- 失败 prompt 会保存下来供一键重试
 
-前端如果当前页面展示了学习画像摘要，可以局部刷新；如果没有，也可以先忽略。
+## 6. 现在还没做的部分
 
-### `error`
+以下仍属于下一轮可继续 polish 的内容：
+- conversations 分页
+- 更细的骨架屏层级
+- 更细的表单校验反馈
+- 更细的 SSE 断线恢复策略
+- 移动端更强的聊天布局优化
 
-显示可重试错误提示，并结束当前流式发送态。
+## 7. 当前文件入口
 
-### `done`
+前端主入口：
+- [apps/web/src/App.vue](D:\Codex\ai_voice_assistant\apps\web\src\App.vue)
 
-把“正在生成”状态关闭。
+认证页：
+- [apps/web/src/pages/AuthPage.vue](D:\Codex\ai_voice_assistant\apps\web\src\pages\AuthPage.vue)
 
-## 6. 前端本地联调建议
+应用主页面：
+- [apps/web/src/pages/AppHomePage.vue](D:\Codex\ai_voice_assistant\apps\web\src\pages\AppHomePage.vue)
 
-推荐先做这 4 条最小链路，不要一开始铺太多页面：
-- 登录页
-- onboarding 页
-- conversation list
-- chat detail
+API 层：
+- [apps/web/src/lib/api.ts](D:\Codex\ai_voice_assistant\apps\web\src\lib\api.ts)
 
-最小联调验收建议：
-- 登录后能读到 `/api/me`
-- onboarding 提交后再次读取 `/api/learning-profile` 能看到刚写入的数据
-- 新建 conversation 后列表立即出现一条 `新对话`
-- 首轮 chat 完成后，列表标题被 `conversation.updated` 刷新
-- 消息页能看到 user/assistant 两条消息
-
-## 7. 当前不应假设前端已具备的能力
-
-目前不要在前端文档里默认这些已经有：
-- 现成的 Vue Router 页面流
-- API SDK 封装
-- 全局登录态 store
-- SSE composable
-- Vite 代理配置
-
-这些都还需要后续前端实现时再落代码。
+Session 层：
+- [apps/web/src/lib/session.ts](D:\Codex\ai_voice_assistant\apps\web\src\lib\session.ts)

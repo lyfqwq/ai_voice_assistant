@@ -10,9 +10,11 @@
   "scripts": {
     "check:workspace": "node scripts/check-workspace.mjs",
     "dev:api": "corepack pnpm --filter @ai-voice-assistant/api start:dev",
+    "dev:web": "corepack pnpm --filter @ai-voice-assistant/web dev",
     "lint": "eslint .",
     "format": "prettier --check .",
-    "typecheck:api": "corepack pnpm --filter @ai-voice-assistant/api typecheck"
+    "typecheck:api": "corepack pnpm --filter @ai-voice-assistant/api typecheck",
+    "typecheck:web": "corepack pnpm --filter @ai-voice-assistant/web typecheck"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
